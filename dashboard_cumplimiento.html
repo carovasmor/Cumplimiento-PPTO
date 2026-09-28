@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cumplimiento de Presupuesto — ANS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="datos_cumplimiento.js"></script>
+<style>
+:root{--mor:#4A1E8C;--tur:#00B9AE;--dark:#231A3C;--gris:#5F5E5A;--light:#F4F1FA;--bd:#e6e2f0;--ver:#1BAF7A;--amb:#D97706;--rj:#B3261E}
+*{box-sizing:border-box;margin:0}
+body{font-family:Arial,Helvetica,sans-serif;color:#2b2b30;background:#faf9f6;padding-bottom:50px}
+header{background:var(--dark);color:#fff;padding:24px 5vw 20px}
+header h1{font-size:21px}header p{color:#C9C2D8;margin-top:5px;font-size:13px}
+main{padding:20px 5vw;max-width:1340px;margin:0 auto}
+h2{font-size:16px;color:var(--dark);margin:28px 0 12px}
+.filtros{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.flabel{font-size:13px;font-weight:bold;color:var(--dark);width:110px}
+.fbtn{padding:7px 16px;border-radius:8px;border:none;cursor:pointer;font-weight:bold;font-size:12px;background:var(--mor);color:#fff}
+.fbtn.on{background:var(--ver)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.card{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px;position:relative;overflow:hidden}
+.card .top{height:4px;position:absolute;top:0;left:0;right:0}
+.card .k{font-size:12px;color:var(--gris)}
+.card .v{font-size:24px;font-weight:bold;margin-top:6px}
+.card .sub{font-size:11px;color:var(--gris);margin-top:5px}
+.card .badge{font-size:12px;font-weight:bold;margin-top:4px}
+.chartbox{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px;height:320px;position:relative}
+.tablewrap{overflow-x:auto;border:1px solid var(--bd);border-radius:10px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--mor);color:#fff;padding:9px 8px;text-align:right;font-size:11px;cursor:pointer;white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:7px 8px;border-top:1px solid #f0edf7;text-align:right;white-space:nowrap}
+td:first-child{text-align:left;font-weight:bold;color:var(--dark)}
+tr:hover td{background:#f8f6fc}
+.bar{display:inline-block;height:13px;border-radius:3px;vertical-align:middle}
+.pill{font-weight:bold}
+tr.tot td{border-top:2px solid var(--mor);font-weight:bold;background:var(--light)}
+.note{font-size:11px;color:var(--gris);margin-top:8px}
+footer{padding:20px 5vw;font-size:11px;color:var(--gris)}
+</style></head><body>
+<header><h1>Cumplimiento de Presupuesto — ANS</h1><p id="hdr"></p></header>
+<main>
+<div class="filtros">
+ <div class="frow"><span class="flabel">Canal:</span>
+  <button class="fbtn on" id="cn-all" onclick="setCanal('all')">Todos</button>
+  <button class="fbtn" id="cn-portal" onclick="setCanal('portal')">Portal</button>
+  <button class="fbtn" id="cn-trad" onclick="setCanal('trad')">Tradicional</button></div>
+ <div class="frow"><span class="flabel">Tipo negocio:</span>
+  <button class="fbtn on" id="tp-all" onclick="setTipo('all')">Todos</button>
+  <button class="fbtn" id="tp-vn" onclick="setTipo('vn')">Venta Nueva</button>
+  <button class="fbtn" id="tp-renov" onclick="setTipo('renov')">Renovación</button></div>
+</div>
+
+<h2>Resumen global (enero–agosto 2026)</h2>
+<div class="cards" id="kpis"></div>
+
+<h2>Evolución mensual: real 2026 vs presupuesto vs 2025</h2>
+<div class="chartbox"><canvas id="cmes"></canvas></div>
+
+<h2>Cumplimiento por ramo — UF</h2>
+<div class="tablewrap"><table id="tramo"><thead><tr>
+<th onclick="sr('ramo','k')">Ramo</th><th onclick="sr('ramo','r26')">Real 2026</th><th onclick="sr('ramo','pp')">Ppto 2026</th>
+<th onclick="sr('ramo','cumpl')">% Cumpl</th><th onclick="sr('ramo','gap')">Dif. UF (real−ppto)</th>
+<th onclick="sr('ramo','r25')">Real 2025</th><th onclick="sr('ramo','var')">Var % vs 25</th><th onclick="sr('ramo','prima')">Prima prom.</th>
+</tr></thead><tbody></tbody></table></div>
+<p class="note">Dif. UF = real − presupuesto (negativo = caída bajo meta). Prima promedio = UF ÷ pólizas. Verde ≥95% · ámbar 75-95% · rojo &lt;75%.</p>
+
+<h2>Producción por ramo — Unidades (pólizas)</h2>
+<div class="tablewrap"><table id="tunid"><thead><tr>
+<th onclick="sr('unid','k')">Ramo</th><th onclick="sr('unid','u26')">Pólizas 2026</th><th onclick="sr('unid','u25')">Pólizas 2025</th>
+<th onclick="sr('unid','du')">Δ Pólizas</th><th onclick="sr('unid','varu')">Var % un.</th><th onclick="sr('unid','prima')">Prima prom. UF</th>
+</tr></thead><tbody></tbody></table></div>
+<p class="note">Unidades = número de pólizas emitidas (el presupuesto no está desagregado en unidades; se compara contra 2025).</p>
+
+<h2>Producción por compañía — UF</h2>
+<div class="tablewrap"><table id="tcia"><thead><tr>
+<th onclick="sr('cia','k')">Compañía</th><th onclick="sr('cia','r26')">Real 2026</th><th onclick="sr('cia','r25')">Real 2025</th>
+<th onclick="sr('cia','dif')">Δ UF vs 25</th><th onclick="sr('cia','var')">Var %</th><th onclick="sr('cia','u26')">Pólizas 2026</th><th>Tendencia</th>
+</tr></thead><tbody></tbody></table></div>
+</main>
+<footer>ANS · Documento de trabajo interno. Fuente: V5 cierre agosto 2026. Montos en UF, unidades en pólizas. Comparaciones a igual período (ene-ago).</footer>
+<script>
+const fmt=n=>Math.round(n).toLocaleString('es-CL');
+const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+let canal='all', tipo='all', chart=null;
+const sort={ramo:{k:'pp',d:-1},unid:{k:'u26',d:-1},cia:{k:'r26',d:-1}};
+document.getElementById('hdr').textContent=`Real 2026 cerrado a agosto (${CD.mesmax} meses) · vs presupuesto y vs 2025 · UF y unidades`;
+function cur(){return CD.combos[canal+'_'+tipo];}
+function cumplCol(p){return p>=95?'#1BAF7A':p>=75?'#D97706':'#B3261E';}
+function varCol(v){return v>=0?'#1BAF7A':'#B3261E';}
+function setCanal(c){canal=c;['all','portal','trad'].forEach(x=>document.getElementById('cn-'+x).classList.toggle('on',x===c));render();}
+function setTipo(t){tipo=t;['all','vn','renov'].forEach(x=>document.getElementById('tp-'+x).classList.toggle('on',x===t));render();}
+function kpi(k,v,sub,badge,col){return `<div class="card"><div class="top" style="background:${col}"></div><div class="k">${k}</div><div class="v" style="color:${col}">${v}</div>${badge?`<div class="badge" style="color:${col}">${badge}</div>`:''}<div class="sub">${sub}</div></div>`;}
+function render(){
+ const c=cur(),g=c.glob;
+ // KPIs
+ const cumpl=g.pp>0?g.r26/g.pp*100:0, varp=g.r25>0?(g.r26/g.r25-1)*100:0, gap=g.r26-g.pp;
+ const prima=g.u26>0?g.r26/g.u26:0;
+ let h='';
+ h+=kpi('Real 2026 (UF)',fmt(g.r26),`Ppto: ${fmt(g.pp)}`,`${cumpl.toFixed(0)}% del ppto`,cumplCol(cumpl));
+ h+=kpi('Dif. vs ppto (UF)',(gap>=0?'+':'')+fmt(gap),gap>=0?'sobre meta':'bajo meta',`${varp>=0?'+':''}${varp.toFixed(0)}% vs 2025`,varCol(gap));
+ h+=kpi('Pólizas 2026',fmt(g.u26),`2025: ${fmt(g.u25)}`,`${g.u25>0?((g.u26/g.u25-1)*100>=0?'+':'')+((g.u26/g.u25-1)*100).toFixed(0):'—'}% un. vs 2025`,varCol(g.u26-g.u25));
+ h+=kpi('Prima promedio (UF)',prima.toFixed(1),`UF ÷ pólizas`,`por póliza`,'#2a78d6');
+ document.getElementById('kpis').innerHTML=h;
+ // gráfico
+ const lbl=c.mens.map(x=>MESES[x.m-1]);
+ if(chart)chart.destroy();
+ chart=new Chart(document.getElementById('cmes'),{data:{labels:lbl,datasets:[
+   {type:'bar',label:'Real 2026',data:c.mens.map(x=>x.r26),backgroundColor:'#4A1E8C',order:2},
+   {type:'line',label:'Presupuesto 2026',data:c.mens.map(x=>x.pp),borderColor:'#D97706',borderWidth:2,pointRadius:2,fill:false,order:1,tension:.2},
+   {type:'line',label:'Real 2025',data:c.mens.map(x=>x.r25),borderColor:'#00B9AE',borderWidth:2,borderDash:[5,4],pointRadius:2,fill:false,order:1,tension:.2}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}},tooltip:{callbacks:{label:x=>x.dataset.label+': UF '+fmt(x.raw)}}},scales:{y:{ticks:{callback:v=>fmt(v),font:{size:10}}}}}});
+ drawRamo();drawUnid();drawCia();
+}
+function enr(rows){return rows.map(x=>({...x,cumpl:x.pp>0?x.r26/x.pp*100:0,gap:x.r26-x.pp,dif:x.r26-x.r25,var:x.r25>0?(x.r26/x.r25-1)*100:0,du:x.u26-x.u25,varu:x.u25>0?(x.u26/x.u25-1)*100:0}));}
+function drawRamo(){
+ const rows=enr(cur().ramo).sort((a,b)=>(a[sort.ramo.k]>b[sort.ramo.k]?1:-1)*sort.ramo.d);
+ let t={r26:0,pp:0,r25:0};
+ const body=rows.map(x=>{t.r26+=x.r26;t.pp+=x.pp;t.r25+=x.r25;
+  const cc=cumplCol(x.cumpl),bw=Math.min(x.cumpl/120*100,100);
+  return `<tr><td>${x.k}</td><td>${fmt(x.r26)}</td><td>${x.pp?fmt(x.pp):'—'}</td>
+   <td class="pill" style="color:${cc}">${x.pp?x.cumpl.toFixed(0)+'%':'—'}</td>
+   <td class="pill" style="color:${varCol(x.gap)}">${x.pp?(x.gap>=0?'+':'')+fmt(x.gap):'—'}</td>
+   <td>${fmt(x.r25)}</td><td class="pill" style="color:${varCol(x.var)}">${x.r25>0?(x.var>=0?'+':'')+x.var.toFixed(0)+'%':'—'}</td>
+   <td>${x.prima?x.prima.toFixed(1):'—'}</td></tr>`;}).join('');
+ const tc=t.r26/t.pp*100,tv=(t.r26/t.r25-1)*100,tg=t.r26-t.pp;
+ document.querySelector('#tramo tbody').innerHTML=body+`<tr class="tot"><td>TOTAL</td><td>${fmt(t.r26)}</td><td>${fmt(t.pp)}</td><td style="color:${cumplCol(tc)}">${tc.toFixed(0)}%</td><td style="color:${varCol(tg)}">${tg>=0?'+':''}${fmt(tg)}</td><td>${fmt(t.r25)}</td><td style="color:${varCol(tv)}">${tv>=0?'+':''}${tv.toFixed(0)}%</td><td></td></tr>`;
+}
+function drawUnid(){
+ const rows=enr(cur().ramo).sort((a,b)=>(a[sort.unid.k]>b[sort.unid.k]?1:-1)*sort.unid.d);
+ let t={u26:0,u25:0};
+ const body=rows.map(x=>{t.u26+=x.u26;t.u25+=x.u25;
+  return `<tr><td>${x.k}</td><td>${fmt(x.u26)}</td><td>${fmt(x.u25)}</td>
+   <td class="pill" style="color:${varCol(x.du)}">${x.du>=0?'+':''}${fmt(x.du)}</td>
+   <td class="pill" style="color:${varCol(x.varu)}">${x.u25>0?(x.varu>=0?'+':'')+x.varu.toFixed(0)+'%':'—'}</td>
+   <td>${x.prima?x.prima.toFixed(1):'—'}</td></tr>`;}).join('');
+ const tvu=(t.u26/t.u25-1)*100;
+ document.querySelector('#tunid tbody').innerHTML=body+`<tr class="tot"><td>TOTAL</td><td>${fmt(t.u26)}</td><td>${fmt(t.u25)}</td><td style="color:${varCol(t.u26-t.u25)}">${(t.u26-t.u25)>=0?'+':''}${fmt(t.u26-t.u25)}</td><td style="color:${varCol(tvu)}">${tvu>=0?'+':''}${tvu.toFixed(0)}%</td><td></td></tr>`;
+}
+function drawCia(){
+ const rows=enr(cur().cia).sort((a,b)=>(a[sort.cia.k]>b[sort.cia.k]?1:-1)*sort.cia.d);
+ let t={r26:0,r25:0,u26:0};
+ const body=rows.map(x=>{t.r26+=x.r26;t.r25+=x.r25;t.u26+=x.u26;
+  const tend=x.var>=5?'▲ Creciendo':x.var<=-5?'▼ Cayendo':'= Estable',tcol=x.var>=5?'#1BAF7A':x.var<=-5?'#B3261E':'#6B7280';
+  return `<tr><td>${x.k}</td><td>${fmt(x.r26)}</td><td>${fmt(x.r25)}</td>
+   <td style="color:${varCol(x.dif)}">${x.dif>=0?'+':''}${fmt(x.dif)}</td>
+   <td class="pill" style="color:${varCol(x.var)}">${x.r25>0?(x.var>=0?'+':'')+x.var.toFixed(0)+'%':'—'}</td>
+   <td>${fmt(x.u26)}</td><td style="color:${tcol};font-weight:bold">${tend}</td></tr>`;}).join('');
+ const tv=(t.r26/t.r25-1)*100;
+ document.querySelector('#tcia tbody').innerHTML=body+`<tr class="tot"><td>TOTAL</td><td>${fmt(t.r26)}</td><td>${fmt(t.r25)}</td><td style="color:${varCol(t.r26-t.r25)}">${(t.r26-t.r25)>=0?'+':''}${fmt(t.r26-t.r25)}</td><td style="color:${varCol(tv)}">${tv>=0?'+':''}${tv.toFixed(0)}%</td><td>${fmt(t.u26)}</td><td></td></tr>`;
+}
+function sr(tab,k){const s=sort[tab];s.d=(s.k===k)?-s.d:-1;s.k=k;tab==='ramo'?drawRamo():tab==='unid'?drawUnid():drawCia();}
+render();
+</script></body></html>
